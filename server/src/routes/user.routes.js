@@ -1,31 +1,41 @@
 import { Router } from "express";
 import { 
     registerUser, 
-    verifyOTP,   // NAYA: Import kiya
+    verifyOTP, 
     loginUser, 
     logoutUser, 
+    forgotPassword, 
+    googleAuthSuccess,
     getCurrentUser 
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { verifyJWT, authorizeRoles } from "../middlewares/auth.middleware.js";
+import passport from "passport";
 
 const router = Router();
 
-// --- Public Routes ---
+// --- PUBLIC ROUTES ---
+router.route("/register").post(upload.single("profilePic"), registerUser);
+router.route("/verify-otp").post(verifyOTP);
+router.route("/login").post(loginUser);
+router.route("/forgot-password").post(forgotPassword);
 
-router.route("/register").post(
-    upload.single("profilePic"), // Ye hona chahiye FormData handle karne ke liye
-    registerUser
+// --- GOOGLE AUTH ROUTES ---
+router.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get("/auth/google/callback", 
+    passport.authenticate("google", { session: false }), 
+    googleAuthSuccess
 );
 
-// NAYA: OTP Verification route
-router.route("/verify-otp").post(verifyOTP);
-
-router.route("/login").post(loginUser);
-
-// --- Protected Routes ---
-
+// --- PROTECTED ROUTES (JWT Required) ---
 router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/current-user").get(verifyJWT, getCurrentUser);
+router.route("/me").get(verifyJWT, getCurrentUser);
+
+// --- ROLE BASED ROUTES (Example: Admin Only) ---
+router.route("/admin/all-users").get(
+    verifyJWT, 
+    authorizeRoles("ADMIN"), 
+    (req, res) => res.json({ message: "Welcome Admin!" })
+);
 
 export default router;

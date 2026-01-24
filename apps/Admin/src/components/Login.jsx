@@ -84,7 +84,7 @@ const Login = () => {
                 </form>
 
                 <div className="mt-8 text-center text-sm text-slate-500">
-                    Don't have an account? <span className="text-blue-400 cursor-pointer hover:underline">Request Access</span>
+                    Don't have an account? <span className="text-blue-400 cursor-pointer hover:underline"> <a href="/signup">Request Access</a></span>
                 </div>
             </motion.div>
         </div>

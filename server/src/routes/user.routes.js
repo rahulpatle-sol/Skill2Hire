@@ -6,7 +6,7 @@ import {
     logoutUser, 
     forgotPassword, 
     googleAuthSuccess,
-    getCurrentUser 
+    getCurrentUser ,resendOTP
 } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT, authorizeRoles } from "../middlewares/auth.middleware.js";
@@ -30,7 +30,7 @@ router.get("/auth/google/callback",
 // --- PROTECTED ROUTES (JWT Required) ---
 router.route("/logout").post(verifyJWT, logoutUser);
 router.route("/me").get(verifyJWT, getCurrentUser);
-
+router.route("/resend-otp").post(resendOTP);
 // --- ROLE BASED ROUTES (Example: Admin Only) ---
 router.route("/admin/all-users").get(
     verifyJWT, 

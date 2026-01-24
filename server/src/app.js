@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import passport from "passport"; // 1. Passport import karo
-import {initializePassport} from"./config/passport.js";   // 2. Passport ki configuration file ko import karo (Zaroori!)
+ // 2. Passport ki configuration file ko import karo (Zaroori!)
 
 const app = express(); 
 
@@ -18,9 +18,7 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
-initializePassport();
-// 3. Passport Initialize (Middleware setup ke baad aur routes se pehle)
-app.use(passport.initialize());
+
 
 // --- ROUTES ---
 import userRouter from "./routes/user.routes.js"

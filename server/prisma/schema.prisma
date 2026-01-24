@@ -53,7 +53,24 @@ model Talent {
   isVerified   Boolean  @default(false) // Badge logic
   applications Application[]
 }
-
+model Assessment {
+  id          String   @id @default(uuid())
+  talentId    String   @unique
+  talent      Talent   @relation(fields: [talentId], references: [id])
+  
+  // Aptitude Links (JSON format mein store karenge saare subjects)
+  aptitudeLinks Json?    
+  
+  // baki stages ka data
+  onlineTestScore Int?
+  projectGithub   String?
+  projectLiveLink String?
+  
+  // Verification logic
+  status      String   @default("PENDING") // PENDING, UNDER_REVIEW, VERIFIED
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
 // 4. Recruiter Profile (For HRs)
 model Recruiter {
   id          String   @id @default(uuid())

@@ -6,7 +6,7 @@
   "main": "src/index.js",
   "scripts": {
     "dev": "nodemon src/index.js",
-    "start": "node src/index.js",
+    "start": "k",
     "prisma:push": "npx prisma db push",
     "prisma:studio": "npx prisma studio"
   },

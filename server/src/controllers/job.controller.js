@@ -68,5 +68,19 @@ const getJobApplicants = asyncHandler(async (req, res) => {
 
     return res.status(200).json(new ApiResponse(200, jobWithApplicants, "Applicants fetched"));
 });
+// --- Application Status Update (Accept/Reject) ---
 
-export { postJob, getMyJobs, getJobApplicants };
+const updateApplicationStatus = asyncHandler(async (req, res) => {
+    const { applicationId } = req.params;
+    const { status } = req.body; // "ACCEPTED" or "REJECTED"
+
+    const updatedApp = await prisma.application.update({
+        where: { id: applicationId },
+        data: { status }
+    });
+
+    return res.status(200).json(new ApiResponse(200, updatedApp, `Candidate ${status} successfully` ));
+});
+// Routes mein add karo:
+// router.route("/status/:applicationId").patch(updateApplicationStatus);
+export { postJob, getMyJobs, getJobApplicants,updateApplicationStatus };

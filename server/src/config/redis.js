@@ -1,9 +1,13 @@
 import Redis from "ioredis";
 
-const redis = new Redis({
-    host: "127.0.0.1",
-    port: 6379,
-    maxRetriesPerRequest: null // BullMQ ke liye ye zaroori hai
+// Render pe hum REDIS_URL environment variable set karenge
+// Local pe ye apne aap 127.0.0.1 use kar lega
+const redisUrl = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+
+const redis = new Redis(redisUrl, {
+    maxRetriesPerRequest: null, // BullMQ requirements
+    // Agar Upstash (SSL) use ho raha hai toh ye zaroori hai
+    tls: redisUrl.startsWith("rediss://") ? { rejectUnauthorized: false } : undefined
 });
 
 redis.on("error", (err) => console.log("❌ Redis Error:", err));

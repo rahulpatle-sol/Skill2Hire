@@ -16,6 +16,7 @@
     "prisma": "^7.2.0"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.2.0",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.66.7",
@@ -31,6 +32,6 @@
     "nodemailer": "^6.9.16",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "pg": "^8.17.1"
+    "pg": "^8.17.2"
   }
 }

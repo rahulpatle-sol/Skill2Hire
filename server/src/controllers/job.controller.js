@@ -1,86 +1,136 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { prisma } from "../db/index.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
-// --- HR Job Post Karega ---
+// --- 1. HR Job Post Karega ---
+// --- 1. HR Job Post Karega (FIXED) ---
 const postJob = asyncHandler(async (req, res) => {
-    const { title, description, location, salary } = req.body;
+    const { title, description, location, salary, requiredSkills } = req.body; // jobType hata diya
 
-    // 1. Check karo ki login user HR hai ya nahi (Auth Middleware handle karega par safety ke liye)
-    if (req.user.role !== "HR") {
-        return res.status(403).json({ message: "Only HRs can post jobs" });
+    if (!req.user) {
+        return res.status(401).json({ message: "Bhai, pehle login karo" });
     }
 
-    // 2. HR ki profile dhundo (Kyuki Job Recruiter table se link hai)
     const hrProfile = await prisma.recruiter.findUnique({
         where: { userId: req.user.id }
     });
 
-    if (!hrProfile) return res.status(404).json({ message: "HR profile not found" });
-
-    // 3. Job create karo
     const job = await prisma.job.create({
         data: {
             title,
             description,
             location,
             salary,
+            // jobType: jobType || "Full-time", ❌ Is line ko comment kar do ya hata do
+            requiredSkills: requiredSkills || [],
             postedById: hrProfile.id
         }
     });
 
-    return res.status(201).json(new ApiResponse(201, job, "Job posted successfully!"));
+    return res.status(201).json(new ApiResponse(201, job, "Job live successfully!"));
 });
 
-// --- HR apni post ki hui Jobs monitor karega ---
+// --- 2. HR Apni Jobs Dekhega ---
 const getMyJobs = asyncHandler(async (req, res) => {
+    if (!req.user || !req.user.id) {
+        return res.status(401).json({ success: false, message: "Pehle login karo bhai!" });
+    }
+
     const hrProfile = await prisma.recruiter.findUnique({
-        where: { userId: req.user.id },
-        include: {
-            jobs: {
-                include: {
-                    _count: { select: { applications: true } } // Count kitne logo ne apply kiya
-                }
-            }
-        }
+        where: { userId: req.user.id }
     });
 
-    return res.status(200).json(new ApiResponse(200, hrProfile.jobs, "Jobs fetched successfully"));
+    if (!hrProfile) {
+        return res.status(404).json({ success: false, message: "HR profile nahi mili!" });
+    }
+
+    const jobs = await prisma.job.findMany({
+        where: { postedById: hrProfile.id },
+        include: {
+            _count: { select: { applications: true } },
+            applications: {
+                include: {
+                    talent: { include: { user: true } }
+                }
+            },
+            recruiter: true // ✅ SCHEMA FIX: postedBy nahi, recruiter
+        },
+        orderBy: { createdAt: "desc" }
+    });
+
+    return res.status(200).json(new ApiResponse(200, jobs, "Data aa gaya!"));
 });
 
-// --- Job details with all applicants (HR dashboard ke liye) ---
+// --- 3. General Job Feed ---
+const getAllJobs = asyncHandler(async (req, res) => {
+    const jobs = await prisma.job.findMany({
+        orderBy: { createdAt: "desc" },
+        include: { 
+            recruiter: { select: { companyName: true } } // ✅ SCHEMA FIX: postedBy -> recruiter
+        }
+    });
+    return res.status(200).json(new ApiResponse(200, jobs, "All jobs fetched"));
+});
+
+// --- 4. Get Job Applicants ---
 const getJobApplicants = asyncHandler(async (req, res) => {
     const { jobId } = req.params;
-
     const jobWithApplicants = await prisma.job.findUnique({
         where: { id: jobId },
         include: {
             applications: {
                 include: {
-                    talent: {
-                        include: { user: true } // Applicant ka naam, email, pic sab mil jayega
-                    }
+                    talent: { include: { user: true } }
                 }
             }
         }
     });
-
+    if (!jobWithApplicants) return res.status(404).json({ message: "Job not found" });
     return res.status(200).json(new ApiResponse(200, jobWithApplicants, "Applicants fetched"));
 });
-// --- Application Status Update (Accept/Reject) ---
 
+// --- 5. Update Status ---
 const updateApplicationStatus = asyncHandler(async (req, res) => {
     const { applicationId } = req.params;
-    const { status } = req.body; // "ACCEPTED" or "REJECTED"
-
+    const { status } = req.body;
     const updatedApp = await prisma.application.update({
         where: { id: applicationId },
         data: { status }
     });
-
-    return res.status(200).json(new ApiResponse(200, updatedApp, `Candidate ${status} successfully` ));
+    return res.status(200).json(new ApiResponse(200, updatedApp, `Candidate ${status}`));
 });
-// Routes mein add karo:
-// router.route("/status/:applicationId").patch(updateApplicationStatus);
-export { postJob, getMyJobs, getJobApplicants,updateApplicationStatus };
+
+// --- 6. Recommended Jobs ---
+const getRecommendedJobs = asyncHandler(async (req, res) => {
+    const talent = await prisma.talent.findUnique({
+        where: { userId: req.user.id },
+        select: { skills: true }
+    });
+
+    if (!talent || !talent.skills || talent.skills.length === 0) {
+        const randomJobs = await prisma.job.findMany({ take: 5 });
+        return res.status(200).json(new ApiResponse(200, randomJobs, "Set skills for better matches"));
+    }
+
+    const matchedJobs = await prisma.job.findMany({
+        where: {
+            requiredSkills: {
+                hasSome: talent.skills 
+            }
+        },
+        include: {
+            recruiter: { select: { companyName: true } } // ✅ SCHEMA FIX: postedBy -> recruiter
+        }
+    });
+
+    return res.status(200).json(new ApiResponse(200, matchedJobs, "Recommended jobs for you"));
+});
+
+export { 
+    postJob, 
+    getAllJobs, 
+    getMyJobs, 
+    updateApplicationStatus, 
+    getJobApplicants,
+    getRecommendedJobs
+};

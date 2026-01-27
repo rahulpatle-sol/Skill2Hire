@@ -1,56 +1,78 @@
+import { prisma } from "../db/index.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-import { prisma } from "../db/index.js";
+// --- 1. Pending Assessment & Profiles (Talent Review) ---
+export const getPendingReviews = asyncHandler(async (req, res) => {
+  // Assessment aur Profile Review dono fetch karo
+  const [assessments, profiles] = await Promise.all([
+    prisma.assessment.findMany({
+      where: { status: "UNDER_REVIEW" },
+      include: { talent: { include: { user: true } } }
+    }),
+    prisma.talent.findMany({
+      where: { profileStatus: "PENDING_AUDIT" },
+      include: { user: true }
+    })
+  ]);
 
-// 1. Get Team Members
-const getMyTeam = asyncHandler(async (req, res) => {
-    if (req.user.role !== "MANAGER" && req.user.role !== "ADMIN") {
-        return res.status(403).json({ message: "Only Managers can view team members" });
-    }
-
-    const team = await prisma.user.findMany({
-        where: { managerId: req.user.id },
-        select: {
-            id: true,
-            fullName: true,
-            email: true,
-            role: true,
-            profilePic: true,
-            isVerified: true // Ye bhi add kar diya taaki status dikhe
-        }
-    });
-
-    return res.status(200).json(new ApiResponse(200, team, "Team fetched successfully"));
+  res.status(200).json(new ApiResponse(200, { assessments, profiles }, "Pending tasks fetched"));
 });
 
-// 2. Verify Talent (Iska use Manager karega talent ko active karne ke liye)
-const verifyTalent = asyncHandler(async (req, res) => {
-    const { talentId } = req.body; // Frontend se talent ki ID aayegi
+// --- 2. Verify Talent & Activate Public Profile ---
+export const verifyTalentStatus = asyncHandler(async (req, res) => {
+  const { talentId } = req.params;
+  const { score, isApproved, feedback, makePublic } = req.body;
 
-    if (!talentId) {
-        throw new ApiError(400, "Talent ID is required");
-    }
-
-    // Check if user is MANAGER or ADMIN
-    if (req.user.role !== "MANAGER" && req.user.role !== "ADMIN") {
-        throw new ApiError(403, "Unauthorized: Only Managers can verify talent");
-    }
-
-    // DB mein user ko find karke update karo
-    const updatedUser = await prisma.user.update({
-        where: { 
-            id: talentId,
-            managerId: req.user.id // Security check: Sirf apne hi team member ko verify kar sake
-        },
-        data: {
-            isVerified: true
+  const updatedTalent = await prisma.talent.update({
+    where: { id: talentId },
+    data: { 
+      isVerified: isApproved,
+      isPublic: isApproved && makePublic, // Sirf verified bande hi public ho sakte hain
+      reviewFeedback: feedback,
+      assessment: {
+        update: {
+          status: isApproved ? "VERIFIED" : "REJECTED",
+          onlineTestScore: score 
         }
-    });
+      }
+    }
+  });
 
-    return res.status(200).json(
-        new ApiResponse(200, updatedUser, "Talent verified successfully")
-    );
+  res.status(200).json(new ApiResponse(200, updatedTalent, "Talent audit complete!"));
 });
 
-export { getMyTeam, verifyTalent };
+// --- 3. Mentor Session Approval ---
+export const manageMentorSession = asyncHandler(async (req, res) => {
+  const { sessionId } = req.params;
+  const { status, meetLink } = req.body; // APPROVED, REJECTED
+
+  const session = await prisma.mentorSession.update({
+    where: { id: sessionId },
+    data: { 
+      status, 
+      meetLink: status === "APPROVED" ? meetLink : null 
+    }
+  });
+
+  res.status(200).json(new ApiResponse(200, session, `Session ${status} successfully`));
+});
+
+// --- 4. Global Job Monitor (HR Check) ---
+export const getGlobalJobStats = asyncHandler(async (req, res) => {
+  const jobStats = await prisma.job.findMany({
+    include: {
+      _count: { select: { applications: true } },
+      postedBy: { select: { companyName: true } }
+    }
+  });
+  res.status(200).json(new ApiResponse(200, jobStats, "HR job stats fetched"));
+});
+
+export const getPendingAssessments = asyncHandler(async (req, res) => {
+  const pending = await prisma.assessment.findMany({
+    where: { status: "UNDER_REVIEW" },
+    include: { talent: { include: { user: true } } }
+  });
+  res.status(200).json(new ApiResponse(200, pending, "Pending assessments fetched"));
+});

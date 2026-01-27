@@ -11,7 +11,7 @@ import {
 import { upload } from "../middlewares/multer.middleware.js";
 import { verifyJWT, authorizeRoles } from "../middlewares/auth.middleware.js";
 import passport from "passport";
-
+import {submitAssessmentLinks,getMyAssessment} from '../controllers/talent.controller.js'
 const router = Router();
 
 // --- PUBLIC ROUTES ---
@@ -37,5 +37,8 @@ router.route("/admin/all-users").get(
     authorizeRoles("ADMIN"), 
     (req, res) => res.json({ message: "Welcome Admin!" })
 );
-
+// Isko userRouter mein daal dena
+// user.routes.js
+router.post("/submit-assessment", verifyJWT, submitAssessmentLinks);
+router.get("/my-assessment", verifyJWT, getMyAssessment);
 export default router;

@@ -32,5 +32,4 @@ app.use("/api/v1/admin", adminRouter);
 
 import managerRouter from "./routes/manager.routes.js";
 app.use("/api/v1/manager", managerRouter);
-
 export { app };

@@ -52,6 +52,7 @@ model Talent {
   resumeUrl    String?  // Cloudinary URL
   isVerified   Boolean  @default(false) // Badge logic
   applications Application[]
+  assessment   Assessment?//
 }
 model Assessment {
   id          String   @id @default(uuid())
@@ -97,6 +98,8 @@ model Job {
   description  String
   location     String
   salary       String?
+  jobType      String?  
+  requiredSkills String[]
   postedById   String
   recruiter    Recruiter @relation(fields: [postedById], references: [id])
   applications Application[]

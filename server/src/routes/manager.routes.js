@@ -1,16 +1,17 @@
 import { Router } from "express";
-import { getMyTeam, verifyTalent } from "../controllers/manager.controller.js";
-import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { getPendingAssessments, verifyTalentStatus } from "../controllers/manager.controller.js";
+import { verifyJWT, authorizeRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
-// Saare routes protected rahenge
-router.use(verifyJWT); 
+// Saare manager routes ko verifyJWT aur Role check se guzaaro
+router.use(verifyJWT);
+router.use(authorizeRoles("MANAGER"));
 
-// URL: /api/v1/manager/bridge
-router.route("/bridge").get(getMyTeam);
+// Pending reviews mangwane ke liye
+router.route("/pending-reviews").get(getPendingAssessments);
 
-// URL: /api/v1/manager/verify-talent
-router.route("/verify-talent").post(verifyTalent);
+// Talent verify karne ke liye (PATCH request best rahegi kyunki hum status update kar rahe hain)
+router.route("/verify-talent/:assessmentId").patch(verifyTalentStatus);
 
 export default router;

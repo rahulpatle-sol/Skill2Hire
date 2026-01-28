@@ -1,10 +1,18 @@
 import axios from 'axios';
 import { toast } from 'react-toastify';
 
+// Vite mein environment variables import karne ke liye 'import.meta.env' use hota hai
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
+
 export const api = axios.create({
-    baseURL: 'http://localhost:8000/api/v1',
+    baseURL: BASE_URL,
     withCredentials: true 
 });
+
+// Debugging ke liye (Optional: Sirf development mein dikhega)
+if (import.meta.env.DEV) {
+    console.log("🔗 Connected to API at:", BASE_URL);
+}
 
 // Response Interceptor for Global Error Handling
 api.interceptors.response.use(
@@ -16,7 +24,7 @@ api.interceptors.response.use(
     }
 );
 
-// --- AUTH FUNCTIONS (YE MISSING THE) ---
+// --- AUTH & ADMIN FUNCTIONS (Baaki code same rahega) ---
 
 export const login = async (credentials) => {
     const res = await api.post('/users/login', credentials);
@@ -34,8 +42,6 @@ export const registerUser = async (formData) => {
     });
     return res.data;
 };
-
-// --- ADMIN FUNCTIONS ---
 
 export const getAllUsers = async () => {
     const res = await api.get('/admin/users');

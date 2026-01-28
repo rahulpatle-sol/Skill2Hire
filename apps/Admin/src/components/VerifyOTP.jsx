@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { verifyOTP } from '../auth/authServices'; // Teri authServices se
+import { useLocation, useNavigate, Link } from 'react-router-dom';
+import { verifyOTP } from '../auth/authServices';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { ShieldCheck, Loader2, ArrowLeft } from 'lucide-react';
+import { ShieldCheck, Loader2, ArrowLeft, ChevronRight } from 'lucide-react';
 
 const VerifyOTP = () => {
     const [otp, setOtp] = useState('');
@@ -11,7 +11,6 @@ const VerifyOTP = () => {
     const location = useLocation();
     const navigate = useNavigate();
     
-    // Registration page se email pass ho raha hai ya nahi check karo
     const email = location.state?.email;
 
     useEffect(() => {
@@ -22,80 +21,98 @@ const VerifyOTP = () => {
     }, [email, navigate]);
 
     const handleVerify = async (e) => {
-        e.preventDefault();
-        setLoading(true);
-        try {
-            await verifyOTP({ email, otp }); // Backend call
-            toast.success("Account Verified Successfully! 🎉");
-            navigate("/login");
-        } catch (err) {
-            toast.error(err.response?.data?.message || "Invalid OTP");
-        } finally {
-            setLoading(false);
-        }
-    };
+    e.preventDefault();
+    setLoading(true);
+    try {
+        // 1. Backend se response lo (isme token aur user details honi chahiye)
+        const response = await verifyOTP({ email, otp }); 
+        
+        // 2. LocalStorage update karo (Taaki Dashboard ko pata chale ki login hai)
+        localStorage.setItem("user", JSON.stringify(response.data.user));
+        localStorage.setItem("token", response.data.token);
+
+        toast.success("Verified & Logged In! 🚀");
+
+        // 3. Role ke hisaab se direct dashboard bhejo
+        const role = response.data.user.role;
+        if (role === "ADMIN") navigate("/admin/users");
+        else if (role === "MANAGER") navigate("/manager/bridge");
+        
+    } catch (err) {
+        toast.error(err.response?.data?.message || "Invalid OTP");
+    } finally {
+        setLoading(false);
+    }
+};
 
     return (
-        <div className="flex justify-center items-center h-screen bg-[#0f172a] text-white overflow-hidden relative">
-            {/* Soft Background Glows */}
-            <div className="absolute top-[-10%] right-[-10%] w-80 h-80 bg-emerald-600/10 rounded-full blur-[120px]"></div>
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 font-sans relative overflow-hidden">
+            {/* Top Indicator Line (Emerald for Success/Verification) */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 to-teal-600"></div>
 
             <motion.div 
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="bg-slate-800/40 backdrop-blur-2xl p-10 rounded-3xl w-full max-w-[420px] border border-slate-700/50 shadow-2xl z-10"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white p-10 rounded-2xl w-full max-w-[420px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 z-10"
             >
                 <button 
                     onClick={() => navigate("/register")}
-                    className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm mb-6"
+                    className="flex items-center gap-2 text-slate-400 hover:text-slate-600 transition-colors text-sm mb-8 font-medium"
                 >
-                    <ArrowLeft size={16} /> Back to Register
+                    <ArrowLeft size={16} /> Back
                 </button>
 
-                <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-emerald-500/20 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-emerald-500/30">
-                        <ShieldCheck className="text-emerald-400" size={32} />
+                <div className="text-center mb-10">
+                    <div className="w-16 h-16 bg-emerald-50 rounded-2xl flex items-center justify-center mx-auto mb-5 border border-emerald-100">
+                        <ShieldCheck className="text-emerald-600" size={32} />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Verify Your Email</h2>
-                    <p className="text-slate-400 text-sm mt-2">
-                        We've sent a 6-digit code to <br/>
-                        <span className="text-emerald-400 font-medium">{email}</span>
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">Verify Email</h2>
+                    <p className="text-slate-500 mt-3 text-sm leading-relaxed">
+                        We've sent a 6-digit verification code to <br/>
+                        <span className="text-slate-900 font-bold underline decoration-emerald-400 decoration-2 underline-offset-4">{email}</span>
                     </p>
                 </div>
 
-                <form onSubmit={handleVerify} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-xs font-bold text-slate-500 uppercase tracking-widest ml-1">
-                            Security Code
+                <form onSubmit={handleVerify} className="space-y-8">
+                    <div className="space-y-3">
+                        <label className="text-[11px] font-black text-slate-400 uppercase tracking-[2px] ml-1">
+                            Verification Code
                         </label>
                         <input 
                             type="text" 
                             maxLength="6"
-                            placeholder="Enter 6-digit OTP" 
-                            className="w-full p-4 rounded-2xl bg-slate-900/60 border border-slate-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-center text-2xl tracking-[0.5em] font-mono transition-all"
+                            placeholder="000000" 
+                            className="w-full p-4 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 outline-none focus:ring-4 focus:ring-emerald-50/50 focus:border-emerald-500 text-center text-3xl tracking-[0.4em] font-bold transition-all placeholder:text-slate-200"
                             onChange={e => setOtp(e.target.value)} 
+                            autoFocus
                             required
                         />
                     </div>
 
-                    <motion.button 
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                    <button 
                         disabled={loading || otp.length < 6}
-                        className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-xl font-bold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:bg-slate-200 disabled:text-slate-400"
                     >
                         {loading ? (
                             <Loader2 className="animate-spin" size={20} />
                         ) : (
-                            "Verify Account"
+                            <>Confirm Code <ChevronRight size={18} /></>
                         )}
-                    </motion.button>
+                    </button>
                 </form>
 
-                <p className="text-center text-sm text-slate-500 mt-8">
-                    Didn't receive code? <button className="text-emerald-400 font-semibold hover:underline">Resend OTP</button>
-                </p>
+                <div className="mt-10 text-center">
+                    <p className="text-slate-500 text-sm font-medium">
+                        Didn't receive code? {' '}
+                        <button className="text-emerald-600 font-bold hover:text-emerald-700 transition-all">Resend OTP</button>
+                    </p>
+                </div>
             </motion.div>
+
+            {/* Subtle Tag */}
+            <div className="absolute bottom-8 text-slate-300 text-[10px] font-bold tracking-[3px] uppercase">
+                Skill2Hire Identity Service
+            </div>
         </div>
     );
 };

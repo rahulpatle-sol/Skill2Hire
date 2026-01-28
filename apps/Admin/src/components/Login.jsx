@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useAuth } from '../auth/useAuth';
 import { motion } from 'framer-motion';
 import { toast } from 'react-toastify';
-import { Mail, Lock, LogIn, Loader2 } from 'lucide-react';
+import { Mail, Lock, LogIn, Loader2, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -14,11 +15,9 @@ const Login = () => {
         e.preventDefault();
         setLoading(true);
         try {
-            // handleLogin internally redirect karega based on role
             await handleLogin({ email, password });
             toast.success("Welcome Back! Redirecting...");
         } catch (err) {
-            // Error handling jo global api interceptor se match kare
             toast.error(err.message || "Invalid Credentials");
         } finally {
             setLoading(false);
@@ -26,67 +25,82 @@ const Login = () => {
     };
 
     return (
-        <div className="flex justify-center items-center h-screen bg-[#0f172a] text-white font-sans overflow-hidden relative">
-            {/* Background Decorative Circles */}
-            <div className="absolute top-[-10%] left-[-10%] w-72 h-72 bg-blue-600/20 rounded-full blur-[120px]"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-72 h-72 bg-purple-600/20 rounded-full blur-[120px]"></div>
+        <div className="min-h-screen flex items-center justify-center bg-[#f8fafc] p-4 font-sans relative overflow-hidden">
+            {/* Minimal Decorative Line at Top */}
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
 
             <motion.div 
-                initial={{ opacity: 0, y: 30 }}
+                initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="bg-slate-800/50 backdrop-blur-xl p-10 rounded-2xl w-full max-w-[400px] border border-slate-700 shadow-2xl z-10"
+                transition={{ duration: 0.5 }}
+                className="bg-white p-10 rounded-2xl w-full max-w-[420px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 z-10"
             >
-                <div className="text-center mb-8">
-                    <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                <div className="text-center mb-10">
+                    <h2 className="text-3xl font-extrabold text-slate-900 tracking-tight">
                         sKILL2HIRE
                     </h2>
-                    <p className="text-slate-400 text-sm mt-2">Enter your details to access your console</p>
+                    <p className="text-slate-500 mt-2 font-medium">Please enter your credentials</p>
                 </div>
 
-                <form onSubmit={onSubmit} className="space-y-5">
-                    <div className="relative group">
-                        <Mail className="absolute left-3 top-3 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
-                        <input 
-                            type="email" 
-                            required
-                            placeholder="Email Address" 
-                            className="w-full pl-11 p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-                            onChange={e => setEmail(e.target.value)} 
-                        />
+                <form onSubmit={onSubmit} className="space-y-6">
+                    <div className="space-y-4">
+                        {/* Email Field */}
+                        <div className="relative group">
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={19} />
+                            <input 
+                                type="email" 
+                                required
+                                placeholder="Email Address" 
+                                className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                                onChange={e => setEmail(e.target.value)} 
+                            />
+                        </div>
+
+                        {/* Password Field */}
+                        <div className="relative group">
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-blue-500 transition-colors" size={19} />
+                            <input 
+                                type="password" 
+                                required
+                                placeholder="Password" 
+                                className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all"
+                                onChange={e => setPassword(e.target.value)} 
+                            />
+                        </div>
                     </div>
 
-                    <div className="relative group">
-                        <Lock className="absolute left-3 top-3 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
-                        <input 
-                            type="password" 
-                            required
-                            placeholder="Password" 
-                            className="w-full pl-11 p-3 rounded-xl bg-slate-900/50 border border-slate-700 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all placeholder:text-slate-600"
-                            onChange={e => setPassword(e.target.value)} 
-                        />
+                    <div className="flex justify-end">
+                        <span className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer font-medium">Forgot password?</span>
                     </div>
 
-                    <motion.button 
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
+                    <button 
                         disabled={loading}
-                        className="w-full bg-gradient-to-r from-blue-600 to-blue-500 py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:shadow-[0_0_20px_rgba(37,99,235,0.4)] transition-all disabled:opacity-70"
+                        className="w-full bg-slate-900 hover:bg-black text-white py-4 rounded-xl font-semibold shadow-md active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:bg-slate-400"
                     >
                         {loading ? (
                             <Loader2 className="animate-spin" size={20} />
                         ) : (
                             <>
-                                <LogIn size={20} /> Sign In
+                                Sign In <ChevronRight size={18} />
                             </>
                         )}
-                    </motion.button>
+                    </button>
                 </form>
 
-                <div className="mt-8 text-center text-sm text-slate-500">
-                    Don't have an account? <span className="text-blue-400 cursor-pointer hover:underline"> <a href="/signup">Request Access</a></span>
+                <div className="mt-8 text-center">
+                    <p className="text-slate-500 text-sm font-medium">
+                        Don't have an account? {' '}
+                        <Link to="/register" className="text-blue-600 hover:font-bold transition-all">
+                            Request Access
+                        </Link>
+                    </p>
                 </div>
             </motion.div>
+
+            {/* Subtle background branding */}
+            <div className="absolute bottom-8 text-slate-300 text-xs font-bold tracking-widest uppercase">
+                Secure Terminal v1.0
+            </div>
         </div>
     );
 };

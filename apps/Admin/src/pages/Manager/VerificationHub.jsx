@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { api } from '../../auth/authServices';
-import { motion, AnimatePresence } from 'framer-motion'; // For animations
-import { toast } from 'react-toastify'; // For professional alerts
-import { ShieldAlert, CheckCircle, Loader2, UserX } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-toastify';
+import { ShieldCheck, CheckCircle, Loader2, UserX, Mail, Clock } from 'lucide-react';
 
 const VerificationHub = () => {
     const [pendingUsers, setPendingUsers] = useState([]);
@@ -11,11 +11,11 @@ const VerificationHub = () => {
     const fetchPending = async () => {
         try {
             setLoading(true);
-            const res = await api.get('/manager/bridge'); // Manager controller call
-            // Sirf unverified talent ko filter karo
-            setPendingUsers(res.data.data.filter(u => !u.isVerified));
+            const res = await api.get('/manager/pending-reviews');
+// Kyunki backend { assessments, profiles } bhej raha hai
+setPendingUsers(res.data.data.profiles);
         } catch (err) {
-            toast.error("Failed to load pending talent");
+            toast.error("Sync failed");
         } finally {
             setLoading(false);
         }
@@ -23,40 +23,43 @@ const VerificationHub = () => {
 
     useEffect(() => { fetchPending(); }, []);
 
-    const handleVerify = async (id) => {
-        try {
-            await api.post('/manager/verify-talent', { talentId: id }); // Verify logic
-            toast.success("Talent Verified Successfully! 🎉");
-            
-            // UI se remove karne ke liye filter (Fast feedback)
-            setPendingUsers(prev => prev.filter(user => user.id !== id));
-        } catch (err) {
-            toast.error("Verification failed. Please try again.");
-        }
-    };
+ const handleVerify = async (id) => {
+    try {
+        // Talent ID URL mein jayegi aur baki data body mein
+        await api.patch(`/manager/verify-talent/${id}`, { 
+            isApproved: true, 
+            makePublic: true,
+            score: 85,
+            feedback: "Excellent skills!" 
+        });
+        toast.success("Talent Verified & Activated!");
+        fetchPending(); // List refresh karo
+    } catch (err) {
+        toast.error("Approval Error!");
+    }
+};
 
     return (
-        <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-        >
-            <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
-                    <ShieldAlert className="text-amber-500" /> Verification Hub
-                </h2>
-                <span className="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-xs font-bold">
-                    {pendingUsers.length} Pending
-                </span>
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="flex items-center justify-between bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div>
+                    <h2 className="text-xl font-black text-slate-900 flex items-center gap-2">
+                        <ShieldCheck className="text-emerald-500" size={24} /> Verification Hub
+                    </h2>
+                    <p className="text-xs text-slate-500 font-medium mt-1">Review and approve pending talent requests</p>
+                </div>
+                <div className="px-4 py-2 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-100">
+                    {pendingUsers.length} Pending Requests
+                </div>
             </div>
             
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-                <table className="w-full text-left">
-                    <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
-                        <tr>
-                            <th className="p-4">Candidate Details</th>
-                            <th className="p-4">Requested Role</th>
-                            <th className="p-4 text-right">Action</th>
+            <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+                <table className="w-full text-left border-collapse">
+                    <thead>
+                        <tr className="bg-slate-50/50 text-slate-400 text-[10px] uppercase tracking-[2px] font-black">
+                            <th className="p-5">Candidate</th>
+                            <th className="p-5">Role</th>
+                            <th className="p-5 text-right">Decision</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -68,42 +71,50 @@ const VerificationHub = () => {
                                         layout
                                         initial={{ opacity: 0, x: -20 }}
                                         animate={{ opacity: 1, x: 0 }}
-                                        exit={{ opacity: 0, x: 50, backgroundColor: "rgba(16, 185, 129, 0.1)" }}
-                                        transition={{ duration: 0.3 }}
-                                        className="hover:bg-slate-50/50 transition-colors"
+                                        exit={{ opacity: 0, scale: 0.95, backgroundColor: "#f0fdf4" }}
+                                        className="hover:bg-slate-50/30 transition-colors"
                                     >
-                                        <td className="p-4">
-                                            <div className="font-semibold text-slate-700">{u.fullName}</div>
-                                            <div className="text-xs text-slate-400">{u.email}</div>
+                                        <td className="p-5">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center text-slate-500 font-bold border border-slate-200">
+                                                    {u.fullName[0]}
+                                                </div>
+                                                <div>
+                                                    <div className="font-bold text-slate-800 text-sm">{u.fullName}</div>
+                                                    <div className="flex items-center gap-1 text-[11px] text-slate-400">
+                                                        <Mail size={10} /> {u.email}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td className="p-4 text-sm font-medium text-slate-500">
-                                            <span className="bg-slate-100 px-2 py-1 rounded-md">{u.role}</span>
+                                        <td className="p-5">
+                                            <span className="bg-slate-100 text-slate-600 px-3 py-1 rounded-lg text-[10px] font-black tracking-wider uppercase border border-slate-200">
+                                                {u.role}
+                                            </span>
                                         </td>
-                                        <td className="p-4 text-right">
-                                            <motion.button 
-                                                whileHover={{ scale: 1.05 }}
-                                                whileTap={{ scale: 0.95 }}
+                                        <td className="p-5 text-right">
+                                            <button 
                                                 onClick={() => handleVerify(u.id)}
-                                                className="bg-emerald-600 text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-emerald-700 shadow-lg shadow-emerald-200 transition-all flex items-center gap-2 ml-auto"
+                                                className="bg-slate-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold hover:bg-emerald-600 transition-all shadow-lg shadow-slate-200 flex items-center gap-2 ml-auto"
                                             >
-                                                <CheckCircle size={16} /> Approve
-                                            </motion.button>
+                                                <CheckCircle size={14} /> Approve Talent
+                                            </button>
                                         </td>
                                     </motion.tr>
                                 ))
                             ) : (
-                                <motion.tr initial={{ opacity: 0 }}>
-                                    <td colSpan="3" className="p-20 text-center">
+                                <tr>
+                                    <td colSpan="3" className="p-24 text-center">
                                         {loading ? (
-                                            <Loader2 className="animate-spin mx-auto text-slate-300" size={40} />
+                                            <Loader2 className="animate-spin mx-auto text-indigo-500" size={32} />
                                         ) : (
-                                            <div className="flex flex-col items-center gap-2 text-slate-400">
-                                                <UserX size={48} strokeWidth={1} />
-                                                <p className="text-lg">No pending verifications</p>
+                                            <div className="flex flex-col items-center gap-3 text-slate-300">
+                                                <UserX size={48} strokeWidth={1.5} />
+                                                <p className="text-sm font-bold tracking-tight text-slate-400">All clear! No pending talent.</p>
                                             </div>
                                         )}
                                     </td>
-                                </motion.tr>
+                                </tr>
                             )}
                         </AnimatePresence>
                     </tbody>
